@@ -414,6 +414,8 @@ const VideoCombiner = ({ id, data, selected }) => {
           {outputHistory.length > 0 && (
             <div className="absolute -top-10 right-0 bg-[#0c0d0f]/95 flex items-center gap-1 p-1 border border-white/10 rounded-full ml-auto">
               <button 
+                type="button"
+                suppressHydrationWarning={true}
                 onClick={handlePrev}
                 disabled={currentHistoryIndex <= 0}
                 className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-white/10 text-white/70 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
@@ -427,6 +429,8 @@ const VideoCombiner = ({ id, data, selected }) => {
                 </span>
                 <div className="w-[1px] h-2.5 bg-white/10" />
                 <button 
+                  type="button"
+                  suppressHydrationWarning={true}
                   onClick={handleDeleteHistory}
                   className="p-1 hover:bg-red-500/10 rounded-full text-zinc-400 hover:text-red-500 transition-colors flex items-center justify-center"
                   title="Delete history"
@@ -443,6 +447,8 @@ const VideoCombiner = ({ id, data, selected }) => {
                 />
               </div>
               <button 
+                type="button"
+                suppressHydrationWarning={true}
                 onClick={handleNext}
                 disabled={currentHistoryIndex >= outputHistory.length - 1}
                 className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-white/10 text-white/70 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
@@ -491,7 +497,11 @@ const VideoCombiner = ({ id, data, selected }) => {
             {/* Simple controls overlay */}
             <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover/video:opacity-100 transition-opacity">
               <div className="flex items-center gap-2">
-                <button onClick={() => isPlaying ? videoRef.current.pause() : videoRef.current.play()} className="text-white">
+                <button 
+                  type="button"
+                  suppressHydrationWarning={true}
+                  onClick={() => isPlaying ? videoRef.current.pause() : videoRef.current.play()} className="text-white"
+                >
                   {isPlaying ? <IoPause size={14} /> : <IoPlay size={14} />}
                 </button>
                 <div className="flex-grow h-1 bg-white/20 rounded-full overflow-hidden">

@@ -38,6 +38,7 @@ const RenderApiField = ({ fieldName, meta, idx, formValues, setFormValues, handl
       {onToggleHandle && (
         <button
           type="button"
+          suppressHydrationWarning={true}
           onClick={(e) => { e.stopPropagation(); onToggleHandle(fieldName); }}
           className={`p-1 rounded-lg transition-all group-hover/label:opacity-100 h-6 w-6 flex items-center justify-center ${exposedHandles.includes(fieldName) ? "text-blue-500 bg-blue-500/10 opacity-100" : "text-zinc-500 hover:text-white hover:bg-white/5 opacity-0"}`}
           title={exposedHandles.includes(fieldName) ? "Remove input" : "Set as input"}
@@ -180,6 +181,7 @@ const RenderApiField = ({ fieldName, meta, idx, formValues, setFormValues, handl
             ) : (
               <button
                 type="button"
+                suppressHydrationWarning={true}
                 onClick={() => setDropDown((prev) => (prev === idx + 1 ? -1 : idx + 1))}
                 className="flex items-center justify-between gap-1 text-xs text-center text-white w-full h-full cursor-pointer whitespace-nowrap px-3 py-1.5 focus:outline-none"
               >
@@ -197,6 +199,7 @@ const RenderApiField = ({ fieldName, meta, idx, formValues, setFormValues, handl
             
             <button
               type="button"
+              suppressHydrationWarning={true}
               onClick={() => setDropDown((prev) => (prev === idx + 1 ? -1 : idx + 1))}
               className="px-2 text-gray-400 hover:text-white cursor-pointer border-l border-gray-700 h-full flex items-center justify-center"
             >
@@ -221,6 +224,7 @@ const RenderApiField = ({ fieldName, meta, idx, formValues, setFormValues, handl
               filteredOptions.map((option, i) => (
                 <button
                   type="button"
+                  suppressHydrationWarning={true}
                   key={i}
                   className={`flex items-center gap-2 px-3 py-2 text-xs cursor-pointer rounded-lg transition-all ${
                     (typeof option === "object" ? formValues[fieldName] === option.value : formValues[fieldName] === option)
@@ -310,6 +314,7 @@ const RenderApiField = ({ fieldName, meta, idx, formValues, setFormValues, handl
             )}
             <button 
               type="button" 
+              suppressHydrationWarning={true}
               onClick={() => handleChange(fieldName, '')} 
               className="text-gray-500 group-hover:text-red-600 group-hover:font-black cursor-pointer absolute top-2 left-2"
             >
@@ -356,6 +361,7 @@ const RenderApiField = ({ fieldName, meta, idx, formValues, setFormValues, handl
               <div className="inset-0 group-hover:bg-gray-600/40 absolute rounded">
                 <button 
                   type="button" 
+                  suppressHydrationWarning={true}
                   onClick={() => {
                     const updated = [...imageList];
                     updated.splice(idx, 1);

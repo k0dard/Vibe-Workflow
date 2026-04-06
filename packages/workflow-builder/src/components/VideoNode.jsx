@@ -454,6 +454,8 @@ const VideoGeneration = ({ id, data, selected }) => {
           {outputHistory.length > 0 && (
             <div className="absolute -top-10 right-0 bg-[#0c0d0f]/95 flex items-center gap-1 p-1 border border-white/10 rounded-full ml-auto">
               <button 
+                type="button"
+                suppressHydrationWarning={true}
                 onClick={handlePrev}
                 disabled={currentHistoryIndex <= 0}
                 className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-white/10 text-white/70 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
@@ -467,6 +469,8 @@ const VideoGeneration = ({ id, data, selected }) => {
                 </span>
                 <div className="w-[1px] h-2.5 bg-white/10" />
                 <button 
+                  type="button"
+                  suppressHydrationWarning={true}
                   onClick={handleDeleteHistory}
                   className="p-1 hover:bg-red-500/10 rounded-full text-zinc-400 hover:text-red-500 transition-colors flex items-center justify-center"
                   title="Delete history"
@@ -483,6 +487,8 @@ const VideoGeneration = ({ id, data, selected }) => {
                 />
               </div>
               <button 
+                type="button"
+                suppressHydrationWarning={true}
                 onClick={handleNext}
                 disabled={currentHistoryIndex >= outputHistory.length - 1}
                 className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-white/10 text-white/70 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
@@ -522,6 +528,8 @@ const VideoGeneration = ({ id, data, selected }) => {
               {currentOutputList.length > 1 && (
                 <>
                   <button
+                    type="button"
+                    suppressHydrationWarning={true}
                     onClick={(e) => {
                       e.stopPropagation();
                       setCurrentVideoIndex((prev) => (prev > 0 ? prev - 1 : currentOutputList.length - 1));
@@ -531,6 +539,8 @@ const VideoGeneration = ({ id, data, selected }) => {
                     <FaAngleLeft size={16} />
                   </button>
                   <button
+                    type="button"
+                    suppressHydrationWarning={true}
                     onClick={(e) => {
                       e.stopPropagation();
                       setCurrentVideoIndex((prev) => (prev < currentOutputList.length - 1 ? prev + 1 : 0));
@@ -597,6 +607,8 @@ const VideoGeneration = ({ id, data, selected }) => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <button
+                      type="button"
+                      suppressHydrationWarning={true}
                       onClick={(e) => {
                         e.stopPropagation();
                         if (videoRef.current.paused) {
@@ -614,6 +626,8 @@ const VideoGeneration = ({ id, data, selected }) => {
                     
                     <div className="flex items-center gap-2 group/volume">
                       <button
+                        type="button"
+                        suppressHydrationWarning={true}
                         onClick={(e) => {
                           e.stopPropagation();
                           setIsMuted(!isMuted);

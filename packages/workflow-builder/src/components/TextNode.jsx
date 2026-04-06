@@ -441,6 +441,8 @@ const TextGeneration = ({ id, data, selected }) => {
           {outputHistory.length > 0 && (
             <div className="absolute -top-10 right-0 bg-[#0c0d0f]/95 flex items-center gap-1 p-1 border border-white/10 rounded-full ml-auto">
               <button 
+                type="button"
+                suppressHydrationWarning={true}
                 onClick={handlePrev}
                 disabled={currentHistoryIndex <= 0}
                 className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-white/10 text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
@@ -455,6 +457,8 @@ const TextGeneration = ({ id, data, selected }) => {
                 </span>
                 <div className="w-[1px] h-2.5 bg-white/10" />
                 <button 
+                  type="button"
+                  suppressHydrationWarning={true}
                   onClick={handleDeleteHistory}
                   className="p-1 hover:bg-red-500/10 rounded-full text-zinc-400 hover:text-red-500 transition-colors flex items-center justify-center"
                   title="Delete history"
@@ -471,6 +475,8 @@ const TextGeneration = ({ id, data, selected }) => {
                 />
               </div>
               <button 
+                type="button"
+                suppressHydrationWarning={true}
                 onClick={handleNext}
                 disabled={currentHistoryIndex >= outputHistory.length - 1}
                 className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-white/10 text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
@@ -519,6 +525,8 @@ const TextGeneration = ({ id, data, selected }) => {
               {currentOutputList.length > 1 && (
                 <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded-full border border-white/10 opacity-0 group-hover/text:opacity-100 transition-opacity">
                   <button
+                    type="button"
+                    suppressHydrationWarning={true}
                     onClick={(e) => {
                       e.stopPropagation();
                       setCurrentOutputIndex((prev) => (prev > 0 ? prev - 1 : currentOutputList.length - 1));
@@ -531,6 +539,8 @@ const TextGeneration = ({ id, data, selected }) => {
                     {currentOutputIndex + 1}/{currentOutputList.length}
                   </span>
                   <button
+                    type="button"
+                    suppressHydrationWarning={true}
                     onClick={(e) => {
                       e.stopPropagation();
                       setCurrentOutputIndex((prev) => (prev < currentOutputList.length - 1 ? prev + 1 : 0));

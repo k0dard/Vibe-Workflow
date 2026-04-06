@@ -2056,6 +2056,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
             </Link>
             <button
               type="button"
+              suppressHydrationWarning={true}
               onClick={() => setDropDown(prev => prev === 2 ? 0 : 2)}
               disabled={!interactionMode}
               className="flex items-center gap-2 text-base outline-none text-[#adacaa] hover:text-white cursor-pointer bg-transparent max-w-[90%]"
@@ -2079,6 +2080,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
               >
                 <button
                   type="button"
+                  suppressHydrationWarning={true}
                   onClick={() => setIsSettingsOpen(!isSettingsOpen)}
                   className="flex items-center gap-2 px-4 py-1.5 border border-gray-600/70 bg-white text-black text-sm rounded-full hover:bg-black hover:text-white transition-colors"
                 >
@@ -2089,6 +2091,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
                   <div className="absolute right-0 mt-2 w-48 bg-[#1b1e23] border border-gray-700 rounded-lg shadow-xl z-50 overflow-hidden">
                     <button
                       type="button"
+                      suppressHydrationWarning={true}
                       disabled={isRunning === 4}
                       onClick={() => {
                         handleTemplatePublish();
@@ -2105,6 +2108,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
                     </button>
                     <button
                       type="button"
+                      suppressHydrationWarning={true}
                       onClick={() => {
                         setIsCategoryPopupOpen(true);
                         setIsSettingsOpen(false);
@@ -2122,6 +2126,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
               <>
                 <button
                   type="button"
+                  suppressHydrationWarning={true}
                   disabled={isRunning === 2 || !interactionMode}
                   onClick={handlePublishWorkflow}
                   className="flex items-center gap-2 px-4 py-1.5 border border-gray-600/70 bg-white text-black text-sm rounded-full group cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:bg-black hover:text-white"
@@ -2138,6 +2143,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
                 </button>
                 <button
                   type="button"
+                  suppressHydrationWarning={true}
                   disabled={isRunning === 1 || !interactionMode}
                   onClick={handleRunWorkflow}
                   className="flex items-center gap-2 px-4 py-1.5 border border-gray-600/70 bg-blue-500 text-white text-sm rounded-full group cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:bg-black hover:text-white whitespace-nowrap"
@@ -2156,6 +2162,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
             ) : (
               <button
                 type="button"
+                suppressHydrationWarning={true}
                 disabled={interactionMode}
                 onClick={handleDuplicateWorkflow}
                 className="flex items-center gap-2 px-4 py-1.5 border border-gray-600/70 bg-white text-black text-sm rounded-full group cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:bg-black hover:text-white"
@@ -2177,6 +2184,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
       <div className={`absolute left-4 self-center z-20 flex flex-col gap-2 bg-[#151618] p-1 rounded-full border border-gray-700 shadow-xl ${isRestoring && "hidden"}`}>
         <button
           type="button"
+          suppressHydrationWarning={true}
           onClick={() => toast.error("This workflow can't be edited.")}
           className={`p-3 rounded-full bg-white hover:bg-[#1b1e23] cursor-pointer outline-none text-black active:bg-gray-600 hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed ${interactionMode && "hidden"}`}
         >
@@ -2196,6 +2204,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
         >
           <button
             type="button"
+            suppressHydrationWarning={true}
             disabled={!interactionMode}
             onClick={() => setDropDown((prev) => prev === 1 ? 0 : 1)}
             className={`p-3 rounded-full cursor-pointer outline-none transition disabled:opacity-50 disabled:cursor-not-allowed ${dropDown === 1 ? "bg-white text-black" : "text-gray-300 active:bg-gray-600 hover:text-white hover:bg-[#1b1e23]"}`}
@@ -2222,6 +2231,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
         >
           <button
             type="button"
+            suppressHydrationWarning={true}
             disabled={!interactionMode}
             onClick={() => setDropDown((prev) => prev === 4 ? 0 : 4)}
             className={`p-3 rounded-full cursor-pointer outline-none transition disabled:opacity-50 disabled:cursor-not-allowed ${dropDown === 4 ? "bg-white text-black" : "text-gray-300 active:bg-gray-600 hover:text-white hover:bg-[#1b1e23]"}`}
@@ -2234,6 +2244,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
               <div className="flex flex-col gap-2 w-full">
                 <button
                   type="button"
+                  suppressHydrationWarning={true}
                   onClick={() => addNode("concatNode", null, { selectedModel: concatModels[0] })}
                   className="flex gap-2 justify-center items-center py-3 px-4 text-white cursor-pointer bg-[#2c3037] rounded hover:bg-[#212326]"
                 >
@@ -2241,6 +2252,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
                 </button>
                 <button
                   type="button"
+                  suppressHydrationWarning={true}
                   onClick={() => addNode("vidConcatNode", null, { selectedModel: videoCombinerModels[0] })}
                   className="flex gap-2 justify-center items-center py-3 px-4 text-white cursor-pointer bg-[#2c3037] rounded hover:bg-[#212326]"
                 >
@@ -2252,6 +2264,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
         </div>
         <button
           type="button"
+          suppressHydrationWarning={true}
           onClick={zoomIn}
           className="p-3 rounded-full hover:bg-[#1b1e23] cursor-pointer outline-none text-gray-300 active:bg-gray-600 hover:text-white transition"
         >
@@ -2259,6 +2272,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
         </button>
         <button
           type="button"
+          suppressHydrationWarning={true}
           onClick={zoomOut}
           className="p-3 rounded-full hover:bg-[#1b1e23] cursor-pointer outline-none text-gray-300 active:bg-gray-600 hover:text-white transition"
         >
@@ -2266,6 +2280,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
         </button>
         <button
           type="button"
+          suppressHydrationWarning={true}
           onClick={() => fitView({ padding: 0.4, duration: 500, minZoom: 0.2 })}
           className="p-3 rounded-full hover:bg-[#1b1e23] cursor-pointer outline-none text-gray-300 active:bg-blue-600 hover:text-white transition"
         >
@@ -2273,6 +2288,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
         </button>
         <button
           type="button"
+          suppressHydrationWarning={true}
           onClick={() => setIsDragging(!isDragging)}
           className={`p-3 rounded-full cursor-pointer outline-none active:bg-gray-600 transition ${!isDragging ? "bg-white text-black" : "text-gray-300 hover:bg-[#1b1e23] hover:text-white"}`}
         >
@@ -2342,6 +2358,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
         <div className="absolute right-2 top-16 z-50 w-80 h-full max-h-[90%] bg-[#09090b]/80 backdrop-blur-xl border border-white/20 rounded-2xl flex transition-all duration-300 ease-in-out shadow-2xl">
           <button
             type="button"
+            suppressHydrationWarning={true}
             className="absolute top-2 right-2 text-zinc-400 hover:text-white cursor-pointer w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10 transition-all duration-200"
             onClick={() => {
               setNodes((nds) => nds.map((n) => ({ ...n, selected: false })));
@@ -2372,6 +2389,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
                   <label className="text-[10px] font-bold text-zinc-500 text-start px-1">Model</label>
                   <button
                     type="button"
+                    suppressHydrationWarning={true}
                     ref={modelDropdownTriggerRef}
                     onClick={() => setDropDown(prev => prev === 3 ? 0 : 3)}
                     className="flex items-center justify-between gap-1 text-sm text-center text-white w-full h-full cursor-pointer whitespace-nowrap px-3 py-2 bg-zinc-900/50 border border-white/10 hover:border-white/20 focus:outline-none rounded-lg transition-all"
@@ -2433,6 +2451,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
                       <div className="flex flex-col gap-2 w-full h-full relative pt-2">
                         <button
                           type="button"
+                          suppressHydrationWarning={true}
                           onClick={() => selectedNode && runNodeInputsFromFlow(selectedNode.id)}
                           disabled={selectedNode?.data?.loading === 1}
                           className="absolute top-0 z-10 text-[10px] font-bold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 group disabled:cursor-not-allowed rounded-full text-white bg-blue-600 px-3 py-1 border border-blue-500/50 hover:bg-blue-500 transition-all self-end shadow-lg shadow-blue-900/20"
@@ -2604,6 +2623,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
               {!selectedNode?.data?.selectedModel?.id?.includes("passthrough") && (
                 <button
                   type="button"
+                  suppressHydrationWarning={true}
                   onClick={() => selectedNode && runNodeFromFlow(selectedNode.id)}
                   disabled={loadingNodes[selectedNode.id]}
                   className="text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 group disabled:cursor-not-allowed rounded-lg text-white bg-blue-500 px-4 py-2 border border-blue-500/50 hover:bg-blue-600 w-full transition-all shadow-lg shadow-blue-900/20 active:scale-[0.98]"
@@ -2657,6 +2677,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
           <div className="flex items-center w-full gap-2">
             <button
               type="button"
+              suppressHydrationWarning={true}
               onClick={() => setDropDown(0)}
               className="px-4 py-2 bg-gray-700/50 text-white rounded-full text-sm hover:bg-gray-600/50 transition w-full cursor-pointer"
             >
@@ -2664,6 +2685,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
             </button>
             <button
               type="button"
+              suppressHydrationWarning={true}
               onClick={handleSaveWorkFlow}
               className="px-4 py-2 bg-white text-black rounded-full hover:bg-blue-500 hover:text-white transition w-full text-sm cursor-pointer"
             >
@@ -2683,6 +2705,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
               {presets.map((preset) => (
                 <button
                   type="button"
+                  suppressHydrationWarning={true}
                   key={preset.id}
                   onClick={() => loadPreset(preset)}
                   className="group relative flex flex-col bg-[#151618] aspect-[4/3] border border-gray-700 hover:border-gray-500 rounded-lg shadow-xl hover:shadow-2xl hover:scale-105 cursor-pointer transition-all duration-200 overflow-hidden text-left"
@@ -2723,6 +2746,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
             </div>
             <button
               type="button"
+              suppressHydrationWarning={true}
               onClick={() => setIsPresetsDismissed(true)}
               className="mt-4 px-5 py-2 rounded-full bg-gray-800/80 hover:bg-gray-700 text-xs text-gray-300 font-medium transition-colors border border-gray-700 hover:border-gray-500"
             >
@@ -2763,6 +2787,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
             <div className="p-4 bg-[#151618]/50 flex items-center justify-end gap-3 border-t border-gray-700/50">
               <button
                 type="button"
+                suppressHydrationWarning={true}
                 onClick={() => setIsCategoryPopupOpen(false)}
                 className="px-6 py-2.5 text-sm font-medium text-gray-400 hover:text-white hover:bg-gray-800 rounded-xl transition-all"
               >
@@ -2770,6 +2795,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
               </button>
               <button
                 type="button"
+                suppressHydrationWarning={true}
                 onClick={handleCategorySave}
                 className="flex items-center gap-2 px-6 py-2.5 text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition-all shadow-lg shadow-blue-900/20 active:scale-95"
               >

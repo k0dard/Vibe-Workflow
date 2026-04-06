@@ -32,6 +32,7 @@ const NodeOptionsMenu = ({
     <div className="relative" ref={menuRef}>
       <button
         type="button"
+        suppressHydrationWarning={true}
         onClick={(e) => {
           e.stopPropagation();
           setIsOpen(!isOpen);
@@ -45,6 +46,7 @@ const NodeOptionsMenu = ({
         <div className="absolute right-0 mt-2 whitespace-nowrap bg-[#1b1e23]/95 backdrop-blur-xl border border-white/10 rounded-md shadow-2xl z-[100] overflow-hidden animate-in fade-in zoom-in duration-200">
           <button
             type="button"
+            suppressHydrationWarning={true}
             onClick={(e) => {
               e.stopPropagation();
               onDuplicate(nodeId);
@@ -59,6 +61,7 @@ const NodeOptionsMenu = ({
           {downloadUrl && (
             <button
               type="button"
+              suppressHydrationWarning={true}
               onClick={(e) => {
                 e.stopPropagation();
                 downloadFile(downloadUrl, `${nodeId}_output`);
@@ -74,6 +77,7 @@ const NodeOptionsMenu = ({
           {showThumbnailOption && (
             <button
               type="button"
+              suppressHydrationWarning={true}
               onClick={(e) => {
                 e.stopPropagation();
                 if (onSetThumbnail) onSetThumbnail();
@@ -88,6 +92,7 @@ const NodeOptionsMenu = ({
 
           <button
             type="button"
+            suppressHydrationWarning={true}
             onClick={(e) => {
               e.stopPropagation();
               onDelete();

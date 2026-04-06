@@ -110,6 +110,8 @@ const AudioPlayer = ({ src }) => {
       </div>
       <div className="flex items-center gap-4 w-full relative z-10">
         <button
+          type="button"
+          suppressHydrationWarning={true}
           onClick={toggleAudio}
           className="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-blue-600 hover:bg-blue-500 text-white rounded-full transition-all duration-300 shadow-[0_0_20px_rgba(37,99,235,0.3)] hover:scale-110 active:scale-95 group/play"
         >
@@ -147,6 +149,8 @@ const AudioPlayer = ({ src }) => {
         </div>
         <div className="flex items-center gap-2 group/volume relative">
           <button 
+            type="button"
+            suppressHydrationWarning={true}
             onClick={toggleMute} 
             className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-white transition-colors hover:bg-white/5 rounded-full"
           >

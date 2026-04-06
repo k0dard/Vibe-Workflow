@@ -215,6 +215,7 @@ const NodesNavbar = ({ addNode, apiNodeModels, filterNodeTypes = null, nodeSchem
         {filtered.length > 0 ? filtered.map((item, idx) => (
           <button
             type="button"
+            suppressHydrationWarning={true}
             key={idx}
             className="flex items-center gap-2 px-3 py-2 text-xs text-white hover:bg-[#2c3037] rounded cursor-pointer transition text-left"
             onClick={() => handleAddNode(item.type, item)}
@@ -457,6 +458,7 @@ const Submenu = ({ activeSubMenu, menuStructure, getSubmenuItems, handleAddNode,
           getSubmenuItems(activeSubMenu).map((item, idx) => (
             <button
               type="button"
+              suppressHydrationWarning={true}
               key={idx}
               className="flex items-center gap-2 px-2 py-2 text-xs text-gray-300 hover:bg-[#2c3037] hover:text-white rounded-lg cursor-pointer transition text-left"
               onClick={() => handleAddNode(item.type, item.model)}

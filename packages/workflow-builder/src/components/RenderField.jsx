@@ -128,6 +128,7 @@ const RenderField = ({ fieldName, meta, idx, formValues, setFormValues, handleCh
         >
           <button
             type="button"
+            suppressHydrationWarning={true}
             ref={buttonRef} 
             onClick={() => handleDropdownToggle(idx + 1)}
             className="flex items-center justify-between gap-1 text-xs text-center text-white w-full h-full cursor-pointer whitespace-nowrap px-3 py-1.5 bg-zinc-900/50 border border-white/10 hover:border-white/20 focus:outline-none rounded-lg transition-all"
@@ -154,6 +155,7 @@ const RenderField = ({ fieldName, meta, idx, formValues, setFormValues, handleCh
             {meta.enum.map((option, i) => (
               <button
                 type="button"
+                suppressHydrationWarning={true}
                 key={i}
                 className={`flex items-center gap-2 px-3 py-2 text-xs cursor-pointer rounded-lg transition-all ${
                   formValues[fieldName] === option
@@ -231,6 +233,7 @@ const RenderField = ({ fieldName, meta, idx, formValues, setFormValues, handleCh
             )}
             <button 
               type="button" 
+              suppressHydrationWarning={true}
               onClick={() => handleChange(fieldName, '')} 
               className="text-gray-500 group-hover:text-red-600 group-hover:font-black cursor-pointer absolute top-2 left-2"
             >
@@ -268,6 +271,7 @@ const RenderField = ({ fieldName, meta, idx, formValues, setFormValues, handleCh
               <div className="inset-0 group-hover:bg-gray-600/40 absolute rounded">
                 <button 
                   type="button" 
+                  suppressHydrationWarning={true}
                   onClick={() => {
                     const updated = [...imageList];
                     updated.splice(idx, 1);

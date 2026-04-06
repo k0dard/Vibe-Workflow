@@ -285,6 +285,8 @@ const UploadNode = ({ id, data, formValues, setFormValues, selectedModel, loadin
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2.5">
                           <button
+                            type="button"
+                            suppressHydrationWarning={true}
                             onClick={(e) => {
                               e.stopPropagation();
                               if (videoRef.current.paused) {
@@ -301,6 +303,8 @@ const UploadNode = ({ id, data, formValues, setFormValues, selectedModel, loadin
                           </button>
                           <div className="flex items-center gap-2 group/volume">
                             <button
+                              type="button"
+                              suppressHydrationWarning={true}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setIsMuted(!isMuted);
@@ -362,6 +366,7 @@ const UploadNode = ({ id, data, formValues, setFormValues, selectedModel, loadin
                 )}
                 <button
                   type="button"
+                  suppressHydrationWarning={true}
                   className="text-white hover:text-red-500 bg-black/40 hover:bg-black cursor-pointer absolute left-4 top-4 px-1.5 rounded opacity-0 group-hover:opacity-100 transition-all duration-300"
                   onClick={removeData}
                 >

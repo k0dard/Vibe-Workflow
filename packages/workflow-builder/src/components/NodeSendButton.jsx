@@ -18,6 +18,8 @@ const NodeSendButton = ({ id, data, outputHistory, currentHistoryIndex, currentO
   return (
     <div className="relative">
       <button
+        type="button"
+        suppressHydrationWarning={true}
         onClick={(e) => {
           e.stopPropagation();
           if (connectedEdges.length === 1) {
@@ -43,6 +45,8 @@ const NodeSendButton = ({ id, data, outputHistory, currentHistoryIndex, currentO
             return connectedEdges.map((edge) => (
               <button
                 key={edge.id}
+                type="button"
+                suppressHydrationWarning={true}
                 className="w-full text-left px-3 py-1.5 text-xs text-gray-300 hover:bg-white/10 hover:text-white transition-colors truncate capitalize cursor-pointer block"
                 onClick={(e) => {
                   e.stopPropagation();
