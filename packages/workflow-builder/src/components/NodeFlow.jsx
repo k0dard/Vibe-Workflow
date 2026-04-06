@@ -28,7 +28,7 @@ import TextGeneration from "./TextNode";
 import ImageGeneration from "./ImageNode";
 import VideoGeneration from "./VideoNode";
 import { setWorkflowIds } from "./WorkflowStore";
-import { apiNodeModels, audioModels, concatModels, imageModels, textModels, videoModels, presets } from "./utility";
+import { apiNodeModels, audioModels, concatModels, imageModels, textModels, videoModels, videoCombinerModels, presets } from "./utility";
 import Link from "next/link";
 import RenderField from "./RenderField";
 import PromptConcate from "./PromptConcate";
@@ -40,6 +40,7 @@ import AudioGeneration from "./AudioNode";
 import NodesNavbar from "./NodesNavbar"
 import ChatWidget from "./ChatWidget";
 import { AiOutlineAudio } from "react-icons/ai";
+import VideoCombiner from "./VideoCombiner";
 
 const nodeTypes = {
   textNode: TextGeneration,
@@ -47,6 +48,7 @@ const nodeTypes = {
   videoNode: VideoGeneration,
   audioNode: AudioGeneration,
   concatNode: PromptConcate,
+  vidConcatNode: VideoCombiner,
   apiNode: ApiNode
 }
 
@@ -105,14 +107,14 @@ const getEdgeColor = (sourceHandle, targetHandle, sourceNode = null, targetNode 
 
   if (["textInput", "textInput4", "imageInput", "videoInput", "audioInput2", "concatInput", "apiInput"].includes(targetHandle)) return "blue";
   if (["textInput2", "textInput3", "imageInput2", "imageInput3", "videoInput2", "videoInput3", "videoInput6", "audioInput3", "apiInput2", "apiInput3"].includes(targetHandle)) return "green";
-  if (["videoInput4", "audioInput4"].includes(targetHandle)) return "orange";
+  if (["videoInput4", "audioInput4", "videoInput7"].includes(targetHandle)) return "orange";
   if (["audioInput", "videoInput5"].includes(targetHandle)) return "yellow";
 
   if (sourceNode) {
     const type = sourceNode.type;
     if (type === 'textNode' || type === 'concatNode') return "blue";
     if (type === 'imageNode') return "green";
-    if (type === 'videoNode') return "orange";
+    if (type === 'videoNode' || type === 'vidConcatNode') return "orange";
     if (type === 'audioNode') return "yellow";
   }
 
@@ -164,7 +166,9 @@ const processWorkflowData = (workflowData, nodeSchemas, id) => {
 
   const restoredNodes = workflow.nodes.map(n => ({
     id: n.id,
-    type: n.category === "utility" ? "concatNode" : `${n.category}Node`,
+    type: n.category === "utility" 
+      ? (n.model === "video-combiner" ? "vidConcatNode" : "concatNode") 
+      : `${n.category}Node`,
     position: {
       x: n.position?.x ?? 350,
       y: n.position?.y ?? 0
@@ -337,7 +341,9 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
 
     const restoredNodes = workflow.nodes.map(n => ({
       id: n.id,
-      type: n.category === "utility" ? "concatNode" : `${n.category}Node`,
+      type: n.category === "utility" 
+        ? (n.model === "video-combiner" ? "vidConcatNode" : "concatNode") 
+        : `${n.category}Node`,
       position: {
         x: n.position?.x ?? 350,
         y: n.position?.y ?? 0
@@ -543,6 +549,14 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
           updatedFormValues.video_url = resultValue;
         }
 
+        else if (targetHandle === "videoInput7") {
+          const list = Array.isArray(updatedFormValues.videos_list)
+            ? [...updatedFormValues.videos_list]
+            : [];
+          if (!list.includes(resultValue) && resultValue && resultValue.trim() !== "") list.push(resultValue);
+          updatedFormValues.videos_list = list;
+        }
+
         else if (["videoInput5", "audioInput"].includes(targetHandle)) {
           updatedFormValues.audio_url = resultValue;
         }
@@ -739,6 +753,12 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
             if (color === "orange") {
               if (["videoInput4", "audioInput4"].includes(params.targetHandle)) {
                 updatedFormValues.video_url = resultValue || null;
+              } else if (params.targetHandle === "videoInput7") {
+                const list = Array.isArray(updatedFormValues.videos_list) ? [...updatedFormValues.videos_list] : [];
+                if (!list.includes(resultValue) && resultValue && resultValue.trim() !== "") {
+                  list.push(resultValue);
+                }
+                updatedFormValues.videos_list = list;
               }
             }
 
@@ -810,7 +830,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
 
               return {
                 id: newId,
-                type: n.category === "utility" ? "concatNode" : `${n.category}Node`,
+                type: n.category === "utility" ? (n.model === "video-combiner" ? "vidConcatNode" : "concatNode") : `${n.category}Node`,
                 position: existingNode?.position || {
                   x: n.position?.x ?? 350,
                   y: n.position?.y ?? 0
@@ -969,6 +989,39 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
           })
         );
       }
+
+      if (targetNode?.type === "vidConcatNode" && edge.targetHandle === "videoInput7") {
+        setNodes((prev) =>
+          prev.map((n) => {
+            if (n.id !== targetNode.id) return n;
+            const removedSourceNode = prev.find((node) => node.id === edge.source);
+            const removedUrl = removedSourceNode?.data?.resultUrl || removedSourceNode?.data?.outputs?.[0]?.value;
+            const remainingVideoEdges = updatedEdges.filter((e) =>
+              e.target === targetNode.id && e.targetHandle === "videoInput7"
+            );
+            const remainingUrls = remainingVideoEdges.map((e) => {
+              const src = prev.find((node) => node.id === e.source);
+              return src?.data?.resultUrl || src?.data?.outputs?.[0]?.value || "";
+            }).filter(v => v);
+
+            let updatedFormValues = { ...n.data.formValues };
+            if (remainingUrls.length > 0) {
+              updatedFormValues.videos_list = remainingUrls;
+            } else {
+              const currentList = Array.isArray(updatedFormValues.videos_list)
+                ? updatedFormValues.videos_list.filter(v => v !== removedUrl)
+                : [];
+              updatedFormValues.videos_list = currentList;
+            }
+
+            return {
+              ...n,
+              data: { ...n.data, formValues: updatedFormValues },
+            };
+          })
+        );
+      }
+
       return updatedEdges;
     });
   };
@@ -979,11 +1032,13 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
       const connectedEdges = edges.filter((e) => e.target === node.id);
       const inputNodes = connectedEdges.map((e) => e.source);
       const category = node.type === "textNode" ? "text" : node.type === "imageNode" ? "image" : node.type === "videoNode" ? "video" : node.type === "apiNode" ? "api" : node.type === "audioNode" ? "audio" : "utility";
-      const model = node.data?.selectedModel?.id ? node.data?.selectedModel?.id : category === "utility" ? "prompt-concatenator" : `${category}-passthrough`;
+      const isVideoCombiner = node.type === "vidConcatNode";
+      const model = node.data?.selectedModel?.id ? node.data?.selectedModel?.id : category === "utility" ? (isVideoCombiner ? "video-combiner" : "prompt-concatenator") : `${category}-passthrough`;
       const modelSchema = nodeSchemas?.categories?.[category]?.models?.[model]?.input_schema?.schemas?.input_data;
       const inputSchema = modelSchema?.properties || {};
       const wavespeedSchema = nodeSchemas?.categories?.api?.models?.[model]?.input_schema;
       const concatSchema = nodeSchemas?.categories?.utility?.models?.["prompt-concatenator"]?.input_schema;
+      const videoCombinerSchema = nodeSchemas?.categories?.utility?.models?.["video-combiner"]?.input_schema?.schemas?.input_data?.properties;
 
       let dynamicPrompt = "";
 
@@ -1030,6 +1085,15 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
         ["videoInput4", "audioInput4"].includes(e.targetHandle)
       );
 
+      const videoListConnections = connectedEdges.filter((e) =>
+        e.targetHandle === "videoInput7"
+      );
+
+      const dynamicVideosList =
+        videoListConnections.length > 0
+          ? videoListConnections.map((conn) => `{{ ${conn.source}.outputs[0].value }}`)
+          : node.data?.formValues?.videos_list || [];
+
       const audioUrlConnections = connectedEdges.filter((e) =>
         ["audioInput", "videoInput5"].includes(e.targetHandle)
       );
@@ -1070,6 +1134,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
         audio_url: dynamicAudioUrl,
         image: dynamicImageUrl,
         last_image: dynamicLastImage,
+        videos_list: dynamicVideosList,
       };
 
       if (node.type === "apiNode") {
@@ -1121,6 +1186,15 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
             params.params[key] = meta?.default ?? null;
           }
         }
+      } else if (node.type === "vidConcatNode") {
+        const vcSchema = videoCombinerSchema || { videos_list: { default: [] }, aspect_ratio: { default: "auto" } };
+        for (const [key, meta] of Object.entries(vcSchema)) {
+          if (localSources[key] !== undefined && localSources[key] !== null) {
+            params[key] = localSources[key];
+          } else {
+            params[key] = meta.default ?? null;
+          }
+        }
       } else if (node.type === "concatNode") {
         for (const [key, meta] of Object.entries(concatSchema)) {
           if (localSources[key] !== undefined && localSources[key] !== null) {
@@ -1144,7 +1218,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
           resultUrl: node.data?.resultUrl || "",
           outputs: node.data?.outputs || [],
         }
-      } else if (["imageNode", "videoNode", "audioNode", "apiNode", "concatNode"].includes(node.type)) {
+      } else if (["imageNode", "videoNode", "audioNode", "apiNode", "concatNode", "vidConcatNode"].includes(node.type)) {
         output_params = {
           resultUrl: node.data?.resultUrl || null,
           outputs: node.data?.outputs || [],
@@ -1268,7 +1342,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
                   const nodeIdMatch = id.toLowerCase().replace(/\s+/g, '') === node.id.toLowerCase().replace(/\s+/g, '');
                   if (!nodeIdMatch || !result) return node;
 
-                  if (["textNode", "imageNode", "videoNode", "audioNode", "concatNode", "apiNode"].includes(node.type)) {
+                  if (["textNode", "imageNode", "videoNode", "audioNode", "concatNode", "apiNode", "vidConcatNode"].includes(node.type)) {
                     const currentHistory = node.data.outputHistory || [];
                     const isAlreadyInHistory = currentHistory.some(h => h.result?.id === result.id);
                     const newHistory = isAlreadyInHistory
@@ -1527,7 +1601,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
         })(),
         textInput: "blue", textInput2: "green", textInput3: "green", textInput4: "blue", textOutput: "blue",
         imageInput: "blue", imageInput2: "green", imageInput3: "green", imageOutput: "green",
-        videoInput: "blue", videoInput2: "green", videoInput3: "green", videoInput4: "orange", videoInput5: "yellow", videoInput6: "green", videoOutput: "orange",
+        videoInput: "blue", videoInput2: "green", videoInput3: "green", videoInput4: "orange", videoInput5: "yellow", videoInput6: "green", videoInput7: "orange", videoOutput: "orange",
         audioInput: "yellow", audioInput2: "blue", audioInput3: "green", audioInput4: "orange", audioOutput: "yellow",
       }
     },
@@ -1586,6 +1660,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
         const hasLastImage = "last_image" in formValues;
         const hasVideoUrl = "video_url" in formValues;
         const hasVideoAudioUrl = "audio_url" in formValues;
+        const hasVideosList = "videos_list" in formValues;
         validHandles = [
           hasVideoPrompt && "videoInput",
           hasVideoImageUrl && "videoInput2",
@@ -1593,6 +1668,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
           hasVideoUrl && "videoInput4",
           hasVideoAudioUrl && "videoInput5",
           hasVideoImagesList && "videoInput6",
+          hasVideosList && "videoInput7",
         ].filter(Boolean);
         break;
 
@@ -1613,6 +1689,10 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
         const apiInputs = Object.keys(targetNode.data?.formValues || {});
         const exposedHandles = targetNode.data?.exposedHandles || [];
         validHandles = apiInputs.filter(k => k !== 'apiOutput' && exposedHandles.includes(k));
+        break;
+
+      case "vidConcatNode":
+        validHandles = ["videoInput7"];
         break;
 
       default:
@@ -1671,7 +1751,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
       apiInput: "blue", apiInput2: "green", apiInput3: "green", apiOutput: "green",
       textInput: "blue", textInput2: "green", textInput3: "green", textInput4: "blue", textOutput: "blue",
       imageInput: "blue", imageInput2: "green", imageInput3: "green", imageOutput: "green",
-      videoInput: "blue", videoInput2: "green", videoInput3: "green", videoInput4: "orange", videoInput5: "yellow", videoInput6: "green", videoOutput: "orange",
+      videoInput: "blue", videoInput2: "green", videoInput3: "green", videoInput4: "orange", videoInput5: "yellow", videoInput6: "green", videoInput7: "orange", videoOutput: "orange",
       audioInput: "yellow", audioInput2: "blue", audioInput3: "green", audioInput4: "orange", audioOutput: "yellow",
     };
 
@@ -1697,10 +1777,11 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
       const nodeTypeToHandles = {
         textNode: ["textInput", "textInput2", "textInput3", "textInput4"],
         imageNode: ["imageInput", "imageInput2", "imageInput3"],
-        videoNode: ["videoInput", "videoInput2", "videoInput3", "videoInput4", "videoInput5", "videoInput6"],
+        videoNode: ["videoInput", "videoInput2", "videoInput3", "videoInput4", "videoInput5", "videoInput6", "videoInput7"],
         audioNode: ["audioInput", "audioInput2", "audioInput3", "audioInput4"],
         apiNode: ["apiInput", "apiInput2", "apiInput3"],
-        concatNode: ["concatInput"]
+        concatNode: ["concatInput"],
+        vidConcatNode: ["videoInput7"],
       };
 
       const sourceHandleColor = handleTypesMap[edgePicker.sourceHandleId];
@@ -1724,7 +1805,8 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
         videoNode: ["videoOutput"],
         audioNode: ["audioOutput"],
         apiNode: ["apiOutput"],
-        concatNode: ["concatOutput"]
+        concatNode: ["concatOutput"],
+        vidConcatNode: ["videoOutput"],
       };
 
       const targetHandleColor = handleTypesMap[edgePicker.targetHandleId];
@@ -1759,7 +1841,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
       const compatibilityMap = {
         blue: ['textNode', 'imageNode', 'videoNode', 'audioNode', 'apiNode', 'concatNode'],
         green: ['imageNode', 'videoNode', 'apiNode'],
-        orange: ['videoNode'],
+        orange: ['videoNode', 'vidConcatNode'],
         yellow: ['audioNode', 'videoNode']
       };
       return compatibilityMap[handleColor] || [];
@@ -1767,7 +1849,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
       const compatibilityMap = {
         blue: ['textNode', 'concatNode', 'apiNode'],
         green: ['imageNode', 'apiNode'],
-        orange: ['videoNode'],
+        orange: ['videoNode', 'vidConcatNode'],
         yellow: ['audioNode']
       };
       return compatibilityMap[handleColor] || [];
@@ -1964,7 +2046,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
         </div>
       )}
       <div className="flex items-center justify-center absolute top-0 z-20 bg-[#151618] w-full py-3 border-b border-gray-800">
-        <div className="flex items-center justify-between w-full max-w-[95%] sm:max-w-[90%] lg:max-w-[80%]">
+        <div className="flex items-center justify-between w-full max-w-[95%] sm:max-w-[90%] lg:max-w-[80%] overflow-x-auto">
           <div className="flex items-center gap-2 w-[35%]">
             <Link
               href="/workflow"
@@ -1983,22 +2065,58 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
           </div>
           <div className="flex items-center gap-2">
             {template.showTemplateBtn && (
-              <button
-                type="button"
-                disabled={isRunning === 4}
-                onClick={handleTemplatePublish}
-                className="flex items-center gap-2 px-4 py-1.5 border border-gray-600/70 bg-white text-black text-sm rounded-full group cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:bg-black hover:text-white"
+              <div
+                className="relative"
+                onBlur={(e) => {
+                  const currentTarget = e.currentTarget;
+                  setTimeout(() => {
+                    if (currentTarget && !currentTarget.contains(document.activeElement)) {
+                      setIsSettingsOpen(false);
+                    }
+                  }, 150);
+                }}
+                tabIndex={0}
               >
-                {isRunning === 4 ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-t-transparent border-black group-hover:border-white group-hover:border-t-transparent rounded-full animate-spin"></div> Template
-                  </>
-                ) : (
-                  <>
-                    <LuLayoutTemplate size={16} /> {template.isPublishedTemplate ? "Undo" : "Template"}
-                  </>
+                <button
+                  type="button"
+                  onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                  className="flex items-center gap-2 px-4 py-1.5 border border-gray-600/70 bg-white text-black text-sm rounded-full hover:bg-black hover:text-white transition-colors"
+                >
+                  <FaToolbox size={14} /> Settings <FaAngleDown size={12} className={`transition-transform duration-300 ${isSettingsOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                {isSettingsOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-[#1b1e23] border border-gray-700 rounded-lg shadow-xl z-50 overflow-hidden">
+                    <button
+                      type="button"
+                      disabled={isRunning === 4}
+                      onClick={() => {
+                        handleTemplatePublish();
+                        setIsSettingsOpen(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-[#2c3037] hover:text-white transition-colors border-b border-gray-700/50 disabled:opacity-50"
+                    >
+                      {isRunning === 4 ? (
+                        <div className="w-4 h-4 border-2 border-t-transparent border-gray-300 rounded-full animate-spin"></div>
+                      ) : (
+                        <LuLayoutTemplate size={16} />
+                      )}
+                      <span>{template.isPublishedTemplate ? "Undo Template" : "Make Template"}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCategoryPopupOpen(true);
+                        setIsSettingsOpen(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-[#2c3037] hover:text-white transition-colors"
+                    >
+                      <RiInputMethodLine size={16} />
+                      <span>Category</span>
+                    </button>
+                  </div>
                 )}
-              </button>
+              </div>
             )}
             {interactionMode ? (
               <>
@@ -2022,7 +2140,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
                   type="button"
                   disabled={isRunning === 1 || !interactionMode}
                   onClick={handleRunWorkflow}
-                  className="flex items-center gap-2 px-4 py-1.5 border border-gray-600/70 bg-blue-500 text-white text-sm rounded-full group cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:bg-black hover:text-white"
+                  className="flex items-center gap-2 px-4 py-1.5 border border-gray-600/70 bg-blue-500 text-white text-sm rounded-full group cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:bg-black hover:text-white whitespace-nowrap"
                 >
                   {isRunning === 1 ? (
                     <>
@@ -2116,10 +2234,17 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
               <div className="flex flex-col gap-2 w-full">
                 <button
                   type="button"
-                  onClick={() => addNode("concatNode")}
+                  onClick={() => addNode("concatNode", null, { selectedModel: concatModels[0] })}
                   className="flex gap-2 justify-center items-center py-3 px-4 text-white cursor-pointer bg-[#2c3037] rounded hover:bg-[#212326]"
                 >
                   <TbArrowMerge className="rotate-90" /> <span className="text-xs font-medium">Prompt Concatenator</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => addNode("vidConcatNode", null, { selectedModel: videoCombinerModels[0] })}
+                  className="flex gap-2 justify-center items-center py-3 px-4 text-white cursor-pointer bg-[#2c3037] rounded hover:bg-[#212326]"
+                >
+                  <TbArrowMerge className="rotate-90" /> <span className="text-xs font-medium">Video Combiner</span>
                 </button>
               </div>
             </div>
@@ -2214,7 +2339,7 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
         </ReactFlow>
       </div>
       {selectedNode && !["concatNode"].includes(selectedNode.type) && (
-        <div className="absolute right-2 top-16 z-10 w-80 h-full max-h-[90%] bg-[#09090b]/80 backdrop-blur-xl border border-white/20 rounded-2xl flex transition-all duration-300 ease-in-out shadow-2xl">
+        <div className="absolute right-2 top-16 z-50 w-80 h-full max-h-[90%] bg-[#09090b]/80 backdrop-blur-xl border border-white/20 rounded-2xl flex transition-all duration-300 ease-in-out shadow-2xl">
           <button
             type="button"
             className="absolute top-2 right-2 text-zinc-400 hover:text-white cursor-pointer w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10 transition-all duration-200"
@@ -2295,8 +2420,9 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
                 </div>
                 {selectedNode?.data?.selectedModel ? (
                   (() => {
-                    const nodeType = selectedNode.id.startsWith("text") ? "text" : selectedNode.id.startsWith("image") ? "image" : selectedNode.id.startsWith("video") ? "video" : "audio";
-                    const inputSchema = nodeSchemas?.categories?.[nodeType]?.models[selectedNode?.data?.selectedModel?.id]?.input_schema?.schemas?.input_data || {};
+                    const nodeType = selectedNode.id.startsWith("text") ? "text" : selectedNode.id.startsWith("image") ? "image" : selectedNode.id.startsWith("video") ? "video" : selectedNode.id.startsWith("audio") ? "audio": "utility";
+                    const fullSchema = nodeSchemas?.categories?.[nodeType]?.models[selectedNode?.data?.selectedModel?.id]?.input_schema;
+                    const inputSchema = fullSchema?.schemas?.input_data || fullSchema || {};
 
                     return selectedNode?.data?.loading === 1 ? (
                       <div className="flex flex-col items-center justify-center gap-2 h-full w-full">
@@ -2395,37 +2521,40 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
                           );
                         })}
                       </div>
-                    ) : Object.keys(inputSchema).length > 0 ? (
-                      Object.entries(inputSchema?.properties).map(([key, meta], idx) => (
-                        <RenderField
-                          key={key}
-                          fieldName={key}
-                          meta={meta}
-                          idx={idx}
-                          formValues={selectedNode?.data?.formValues || {}}
-                          setFormValues={(newValues) => {
-                            setNodes((nds) =>
-                              nds.map((node) => {
-                                if (node.id === selectedNode?.id) {
-                                  return {
-                                    ...node,
-                                    data: {
-                                      ...node.data,
-                                      formValues: typeof newValues === 'function'
-                                        ? newValues(node.data?.formValues || {})
-                                        : newValues,
-                                    },
-                                  };
-                                }
-                                return node;
-                              })
-                            );
-                          }}
-                          handleChange={updateNodeFromPanel}
-                          data={inputSchema}
-                          modelName={selectedNode?.data?.selectedModel?.name}
-                        />
-                      ))
+                    ) : (inputSchema?.properties || (inputSchema && Object.keys(inputSchema).length > 0)) ? (
+                      Object.entries(inputSchema?.properties || inputSchema).map(([key, meta], idx) => {
+                        if (key === "schemas") return null;
+                        return (
+                          <RenderField
+                            key={key}
+                            fieldName={key}
+                            meta={meta}
+                            idx={idx}
+                            formValues={selectedNode?.data?.formValues || {}}
+                            setFormValues={(newValues) => {
+                              setNodes((nds) =>
+                                nds.map((node) => {
+                                  if (node.id === selectedNode?.id) {
+                                    return {
+                                      ...node,
+                                      data: {
+                                        ...node.data,
+                                        formValues: typeof newValues === 'function'
+                                          ? newValues(node.data?.formValues || {})
+                                          : newValues,
+                                      },
+                                    };
+                                  }
+                                  return node;
+                                })
+                              );
+                            }}
+                            handleChange={updateNodeFromPanel}
+                            data={inputSchema}
+                            modelName={selectedNode?.data?.selectedModel?.name}
+                          />
+                        );
+                      }).filter(Boolean)
                     ) : (
                       <div className="text-center py-8">
                         <p className="text-sm text-gray-400">No properties available</p>
@@ -2507,8 +2636,9 @@ const NodeFlow = ({ initialNodeSchemas, initialWorkflowData }) => {
         </div>
       )}
       <div
-        className={`fixed inset-0 flex flex-col items-center justify-center z-50 overflow-auto bg-black/30 backdrop-blur transition-all duration-200 ease-in-out ${dropDown === 2 ? "opacity-100 scale-100 visible" : "opacity-0 scale-80 invisible"
-          }`}
+        className={`fixed inset-0 flex flex-col items-center justify-center z-50 overflow-auto bg-black/30 backdrop-blur transition-all duration-200 ease-in-out ${
+          dropDown === 2 ? "opacity-100 scale-100 visible" : "opacity-0 scale-80 invisible"
+        }`}
         onClick={() => setDropDown(0)}
       >
         <div className="bg-[#242629] rounded-lg p-4 w-72 shadow-lg flex flex-col gap-4" onClick={(e) => e.stopPropagation()}>

@@ -1,47 +1,43 @@
-"use client";
-
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { downloadFile, videoCombinerModels } from "./utility";
+import React, { useEffect, useMemo, useState, useRef } from "react";
+import { IoVideocamOutline, IoTrashOutline, IoPlay, IoPause, IoVolumeHigh, IoVolumeMute } from "react-icons/io5";
 import { Handle, Position, useReactFlow, useStore, useUpdateNodeInternals } from "reactflow";
 import { getRunId, getWorkflowId } from "./WorkflowStore";
-import { toast } from "react-hot-toast";
-import { IoClose, IoTrashOutline } from "react-icons/io5";
-import { AiOutlineAudio } from "react-icons/ai";
-import UploadNode from "./UploadNode";
-import { audioModels, downloadFile } from "./utility";
-import AudioPlayer from "./AudioPlayer";
 import axios from "axios";
-import { SlOptions } from "react-icons/sl";
-import { MdOutlineFileDownload } from "react-icons/md";
-import { FaAngleLeft, FaAngleRight } from "react-icons/fa6";
+import { toast } from "react-hot-toast";
 import NodeSendButton from "./NodeSendButton";
+import { FaAngleLeft, FaAngleRight, FaAngleDown } from "react-icons/fa6";
 import NodeOptionsMenu from "./NodeOptionsMenu";
+import { TbArrowMerge } from "react-icons/tb";
 
 const inputHandles = [
-  "audioInput",
-  "audioInput2",
-  "audioInput3",
-  "audioInput4",
+  "videoInput7", // videos_list
 ];
 
 const outputHandles = [
-  "audioOutput",
+  "videoOutput",
 ];
 
-const AudioGeneration = ({ id, data, selected }) => {
+const VideoCombiner = ({ id, data, selected }) => {
   const models = useMemo(() => {
-    return data.nodeSchemas?.categories?.audio?.models 
-      ? Object.values(data.nodeSchemas.categories.audio.models) 
+    return data.nodeSchemas?.categories?.utility?.models 
+      ? Object.values(data.nodeSchemas.categories.utility.models) 
       : [];
   }, [data.nodeSchemas]);
-  
-  const [selectedModel, setSelectedModel] = useState(data.selectedModel || models[1] || models[0] || {});
+  const [selectedModel, setSelectedModel] = useState(data.selectedModel || models[0] || {});
   const [connectedInputs, setConnectedInputs] = useState({});
   const [connectedOutputs, setConnectedOutputs] = useState({});
-  const [formValues, setFormValues] = useState(data.formValues || {});
+  const [formValues, setFormValues] = useState(data.formValues || { videos_list: [], aspect_ratio: "auto" });
   const [dropDown, setDropDown] = useState(0);
   const [loading, setLoading] = useState(0);
   const [currentHistoryIndex, setCurrentHistoryIndex] = useState(-1);
-  const [currentAudioIndex, setCurrentAudioIndex] = useState(0);
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
+  const [isMuted, setIsMuted] = useState(true);
+  const videoRef = useRef(null);
   const outputHistory = data.outputHistory || [];
   const prevHistoryLengthRef = useRef(outputHistory.length);
   const workflowId = getWorkflowId();
@@ -50,8 +46,8 @@ const AudioGeneration = ({ id, data, selected }) => {
   const { setNodes, setEdges } = useReactFlow();
   const updateNodeInternals = useUpdateNodeInternals();
   const edges = useStore((state) => state.edges);
-  const properties = nodeSchemas?.categories?.audio?.models?.[selectedModel.id]?.input_schema?.schemas?.input_data?.properties;
-  
+  const properties = nodeSchemas?.categories?.utility?.models?.[selectedModel.id]?.input_schema?.schemas?.input_data?.properties;
+
   const initializeFormData = (schemaProperties) => {
     const initialData = {};
     const fieldEntries = Object.entries(schemaProperties || {});
@@ -96,9 +92,10 @@ const AudioGeneration = ({ id, data, selected }) => {
 
     return initialData;
   };
-  
+
   const addFormValuesInTaskData = (properties) => {
     const defaults = initializeFormData(properties);
+
     const validKeys = Object.keys(properties);
     const filteredFormValues = Object.entries(data.formValues || {}).reduce((acc, [key, val]) => {
       if (validKeys.includes(key)) acc[key] = val;
@@ -129,7 +126,6 @@ const AudioGeneration = ({ id, data, selected }) => {
 
   useEffect(() => {
     setLoading(1);
-    
     if (properties) {
       addFormValuesInTaskData(properties);
     }
@@ -143,17 +139,16 @@ const AudioGeneration = ({ id, data, selected }) => {
 
     if (data.triggerRun) {
       handleRunSingleNode();
-
       data.onDataChange(id, { triggerRun: false });
     }
 
     if (data.outputHistory && data.outputHistory.length > 0) {
       if (currentHistoryIndex === -1) {
         setCurrentHistoryIndex(data.outputHistory.length - 1);
-        setCurrentAudioIndex(0);
+        setCurrentVideoIndex(0);
       } else if (data.outputHistory.length > prevHistoryLengthRef.current) {
         setCurrentHistoryIndex(data.outputHistory.length - 1);
-        setCurrentAudioIndex(0);
+        setCurrentVideoIndex(0);
       }
     }
     prevHistoryLengthRef.current = data.outputHistory ? data.outputHistory.length : 0;
@@ -161,14 +156,14 @@ const AudioGeneration = ({ id, data, selected }) => {
 
   useEffect(() => {
     updateNodeInternals(id);
-  }, [formValues, id]);
+  }, [formValues, id, selectedModel]);
 
   useEffect(() => {
     if (!data.formValues) return;
     const incoming = JSON.stringify(data.formValues);
     const current = JSON.stringify(formValues);
     if (incoming === current) return;
-
+    
     const timer = setTimeout(() => {
       if (Object.entries(data.formValues || {}).length > 0) {
         setFormValues(data.formValues);
@@ -178,15 +173,10 @@ const AudioGeneration = ({ id, data, selected }) => {
   }, [data.formValues]);
 
   useEffect(() => {
-    if (data?.onDataChange && data?.selectedModel?.id !== "audio-passthrough") {
+    if (data?.onDataChange) {
       data.onDataChange(id, { selectedModel, formValues, loading });
     }
   }, [selectedModel, formValues, loading]);
-
-  const handleChange = (key, value) => {
-    setFormValues(prev => ({ ...prev, [key]: value }));
-    setDropDown(-1);
-  };
 
   const pollNodeStatus = (run_id) => {
     const interval = setInterval(() => {
@@ -212,14 +202,13 @@ const AudioGeneration = ({ id, data, selected }) => {
 
           data?.onDataChange?.(id, { outputs: output, resultUrl: val, isLoading: false, errorMsg: null, outputHistory: newHistory });
           setCurrentHistoryIndex(newHistory.length - 1);
-          setCurrentAudioIndex(0);
+          setCurrentVideoIndex(0);
           clearInterval(interval);
         }
 
         if (latest.status === "failed") {
           const outputs = latest?.result?.outputs;
           let errorMsg = "Generation failed";
-
           if (outputs && outputs[0]?.value?.error) {
             errorMsg = outputs[0].value.error; 
           }
@@ -233,7 +222,7 @@ const AudioGeneration = ({ id, data, selected }) => {
         console.log(error);
         clearInterval(interval);
         data.onDataChange(id, { isLoading: false });
-        toast.error(`Failed to get workflow status Audio ${id.replace(/^\D+/g, "")}`);
+        toast.error(`Failed to get workflow status Video Combiner ${id.replace(/^\D+/g, "")}`);
       });
     }, 3000);
   };
@@ -242,8 +231,7 @@ const AudioGeneration = ({ id, data, selected }) => {
     if (!runId) {
       toast.error("No run_id available!. Click 'Run All' button");
       return;
-    };
-
+    }
     try {
       data.onDataChange(id, { isLoading: true });
       const workflow_id = await data.handleSaveWorkFlow();
@@ -254,7 +242,7 @@ const AudioGeneration = ({ id, data, selected }) => {
         return;
       }
 
-      const modelSchema = nodeSchemas?.categories?.audio?.models[selectedModel.id]?.input_schema?.schemas?.input_data;
+      const modelSchema = nodeSchemas?.categories?.utility?.models[selectedModel.id]?.input_schema?.schemas?.input_data;
       if (!modelSchema || !modelSchema.properties) {
         toast.error("No input schema found for this model");
         data.onDataChange(id, { isLoading: false });
@@ -292,90 +280,6 @@ const AudioGeneration = ({ id, data, selected }) => {
     };
   };
 
-  const hasPrompt = properties && "prompt" in properties && !data.selectedModel?.id.includes("passthrough");
-  const hasImageUrl = properties && "image_url" in properties && !data.selectedModel?.id.includes("passthrough");
-  const hasVideoUrl = properties && "video_url" in properties && !data.selectedModel?.id.includes("passthrough");
-  const hasAudioUrl = properties && "audio_url" in properties && !data.selectedModel?.id.includes("passthrough");
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      const validHandles = [
-        hasAudioUrl && "audioInput",
-        hasPrompt && "audioInput2",
-        hasImageUrl && "audioInput3",
-        hasVideoUrl && "audioInput4",
-      ].filter(Boolean);
-
-      setEdges((prevEdges) =>
-        prevEdges.filter((edge) => {
-          if (edge.target !== id) return true;
-          return validHandles.includes(edge.targetHandle);
-        })
-      );
-      }, 2000);
-    return () => clearTimeout(timeout);
-  }, [hasAudioUrl, hasPrompt, hasImageUrl, hasVideoUrl, id, setEdges]);
-
-  const handlePrev = (e) => {
-    e.stopPropagation();
-    if (currentHistoryIndex > 0) {
-      const newIndex = currentHistoryIndex - 1;
-      setCurrentHistoryIndex(newIndex);
-      setCurrentAudioIndex(0);
-      const viewing = outputHistory[newIndex]?.result?.outputs?.[0]?.value;
-      setNodes((nds) => nds.map((n) => {
-        if (n.id === id) {
-          return { ...n, data: { ...n.data, viewingOutput: viewing } };
-        }
-        return n;
-      }));
-    }
-  };
-
-  const handleNext = (e) => {
-    e.stopPropagation();
-    if (currentHistoryIndex < outputHistory.length - 1) {
-      const newIndex = currentHistoryIndex + 1;
-      setCurrentHistoryIndex(newIndex);
-      setCurrentAudioIndex(0);
-      const viewing = outputHistory[newIndex]?.result?.outputs?.[0]?.value;
-      setNodes((nds) => nds.map((n) => {
-        if (n.id === id) {
-          return { ...n, data: { ...n.data, viewingOutput: viewing } };
-        }
-        return n;
-      }));
-    }
-  };
-
-  const handleDeleteHistory = async (e) => {
-    e.stopPropagation();
-    const currentHistory = outputHistory[currentHistoryIndex];
-    if (!currentHistory || !currentHistory.node_run_id) return;
-
-    if (window.confirm("Are you sure you want to delete this history entry?")) {
-      try {
-        await axios.delete(`/api/workflow/node-run/${currentHistory.node_run_id}`);
-        const newHistory = outputHistory.filter((_, i) => i !== currentHistoryIndex);
-        
-        data?.onDataChange?.(id, { 
-          outputHistory: newHistory,
-          ...(newHistory.length === 0 ? { outputs: [], resultUrl: null } : {})
-        });
-
-        if (newHistory.length === 0) {
-          setCurrentHistoryIndex(-1);
-        } else {
-          setCurrentHistoryIndex(Math.max(0, currentHistoryIndex - 1));
-        }
-        toast.success("History entry deleted");
-      } catch (error) {
-        toast.error(error.response?.data?.detail || "Failed to delete history entry");
-        console.error(error);
-      }
-    }
-  };
-
   useEffect(() => {
     const connectedInputs = {};
     inputHandles.forEach((h) => {
@@ -395,22 +299,98 @@ const AudioGeneration = ({ id, data, selected }) => {
     setConnectedOutputs(connectedOutputs);
   }, [edges, id]);
 
+  const handlePrev = (e) => {
+    e.stopPropagation();
+    if (currentHistoryIndex > 0) {
+      const newIndex = currentHistoryIndex - 1;
+      setCurrentHistoryIndex(newIndex);
+      setCurrentVideoIndex(0);
+      const viewing = outputHistory[newIndex]?.result?.outputs?.[0]?.value;
+      setNodes((nds) => nds.map((n) => {
+        if (n.id === id) {
+          return { ...n, data: { ...n.data, viewingOutput: viewing } };
+        }
+        return n;
+      }));
+    }
+  };
+
+  const handleNext = (e) => {
+    e.stopPropagation();
+    if (currentHistoryIndex < outputHistory.length - 1) {
+      const newIndex = currentHistoryIndex + 1;
+      setCurrentHistoryIndex(newIndex);
+      setCurrentVideoIndex(0);
+      const viewing = outputHistory[newIndex]?.result?.outputs?.[0]?.value;
+      setNodes((nds) => nds.map((n) => {
+        if (n.id === id) {
+          return { ...n, data: { ...n.data, viewingOutput: viewing } };
+        }
+        return n;
+      }));
+    }
+  };
+
+  const handleDeleteHistory = async (e) => {
+    e.stopPropagation();
+    const currentHistory = outputHistory[currentHistoryIndex];
+    if (!currentHistory || !currentHistory.node_run_id) return;
+
+    if (window.confirm("Are you sure you want to delete this history entry?")) {
+      try {
+        await axios.delete(`/api/workflow/node-run/${currentHistory.node_run_id}`);
+        const newHistory = outputHistory.filter((_, i) => i !== currentHistoryIndex);
+        data?.onDataChange?.(id, { 
+          outputHistory: newHistory,
+          ...(newHistory.length === 0 ? { outputs: [], resultUrl: null } : {})
+        });
+        if (newHistory.length === 0) {
+          setCurrentHistoryIndex(-1);
+        } else {
+          setCurrentHistoryIndex(Math.max(0, currentHistoryIndex - 1));
+        }
+        toast.success("History entry deleted");
+      } catch (error) {
+        toast.error(error.response?.data?.detail || "Failed to delete history entry");
+        console.error(error);
+      }
+    }
+  };
+
   const currentOutputList = currentHistoryIndex !== -1 && outputHistory[currentHistoryIndex]
     ? outputHistory[currentHistoryIndex]?.result?.outputs || []
     : (data.outputs || []);
 
   const currentOutput = currentOutputList.length > 0
-    ? currentOutputList[currentAudioIndex]?.value || currentOutputList[0]?.value || data.resultUrl
+    ? currentOutputList[currentVideoIndex]?.value || currentOutputList[0]?.value || data.resultUrl
     : data.resultUrl;
 
+  const hasVideosList = properties && "videos_list" in properties;
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      const validHandles = [
+        hasVideosList && "videoInput7",
+      ].filter(Boolean);
+
+      setEdges((prevEdges) =>
+        prevEdges.filter((edge) => {
+          if (edge.target !== id) return true;
+          return validHandles.includes(edge.targetHandle);
+        })
+      );
+      }, 2000);
+    return () => clearTimeout(timeout);
+  }, [hasVideosList, id, setEdges]);
+  
   return (
     <div 
-      style={{ minHeight: 280, '--loader-color': '#eab308' }}
+      style={{ minHeight: 280, '--loader-color': '#f97316' }} 
       className={`
-        nowheel group flex flex-col flex-1 w-80 
+        nowheel group flex flex-col w-80 
         rounded-2xl border-2 relative transition-all duration-300 ease-in-out 
         ${selected 
-          ? "border-yellow-500 shadow-[0_0_25px_rgba(234,179,8,0.3)] scale-[1.02] ring-1 ring-yellow-500/20" 
+          ? "border-orange-600 shadow-[0_0_25px_rgba(249,115,22,0.3)] scale-[1.02] ring-1 ring-orange-500/20" 
           : "border-zinc-800 hover:border-zinc-700 shadow-lg"} 
         bg-[#0c0d0f]/95 backdrop-blur-sm
       `}
@@ -418,14 +398,14 @@ const AudioGeneration = ({ id, data, selected }) => {
       {data.isLoading && (
         <div className="loader-border" />
       )}
-      <h3 className="absolute -top-5 left-0 text-zinc-400 text-[10px] font-medium tracking-wider uppercase">
-        Audio {id.replace(/^\D+/g, "")}
-      </h3>
+      <h4 className="absolute -top-5 left-0 text-zinc-400 text-[10px] font-medium tracking-wider uppercase">
+        Video Combiner {id.replace(/^\D+/g, "")}
+      </h4>
       <div className="flex flex-col">
         <div className="flex items-center justify-between bg-gradient-to-r from-[#151618] to-[#1c1e21] rounded-t-2xl border-b border-zinc-800 p-3">
           <div className="flex items-center gap-2.5">
-            <div className={`p-1.5 rounded-lg ${selected ? "bg-yellow-500 text-black" : "bg-zinc-800 text-zinc-400"} transition-colors`}>
-              <AiOutlineAudio size={14} />
+            <div className={`p-1.5 rounded-lg ${selected ? "bg-orange-600 text-white" : "bg-zinc-800 text-zinc-400"} transition-colors`}>
+              <TbArrowMerge size={14} className="rotate-90" />
             </div>
             <h3 className="text-xs font-bold text-zinc-100">
               {selectedModel.name}
@@ -459,7 +439,7 @@ const AudioGeneration = ({ id, data, selected }) => {
                   data={data} 
                   outputHistory={outputHistory} 
                   currentHistoryIndex={currentHistoryIndex} 
-                  currentOutputIndex={currentAudioIndex}
+                  currentOutputIndex={currentVideoIndex}
                 />
               </div>
               <button 
@@ -480,191 +460,84 @@ const AudioGeneration = ({ id, data, selected }) => {
           />
         </div>
       </div>
-      {data.selectedModel?.id === "audio-passthrough" ? (
-        <div className="w-full h-full flex-1">
-          <UploadNode id={id} data={data} formValues={formValues} setFormValues={setFormValues} selectedModel={selectedModel} loading={loading} uploadType="upload" acceptType="audio" />
-        </div>
-      ) : (
-        <div className="flex items-center flex-grow justify-center w-full h-full rounded transition-all duration-500">
-          {data.isLoading ? (
-            <div className="flex items-center justify-center w-full h-full overflow-hidden aspect-[1/1] bg-white/5 animate-pulse rounded-b-2xl">
-              <div className="flex flex-col items-center gap-3">
-                <div className="w-8 h-8 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
-                <span className="text-[10px] font-bold text-yellow-500 tracking-wider uppercase">Generating...</span>
+
+      {/* Result Section (Like VideoGeneration) */}
+      <div className="flex items-center flex-grow justify-center w-full h-full rounded transition-all duration-500">
+        {data.isLoading ? (
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-[10px] font-bold text-orange-500 tracking-wider uppercase">Combining...</span>
+          </div>
+        ) : data.errorMsg ? (
+          <div className="text-red-400 text-xs font-medium p-3 bg-red-500/10 rounded-xl border border-red-500/20 m-3 w-full capitalize">
+            {data.errorMsg}
+          </div>
+        ) : currentOutput ? (
+          <div className="h-full w-full relative group/video">
+            <video
+              ref={videoRef}
+              key={currentOutput}
+              src={currentOutput}
+              autoPlay
+              muted={isMuted}
+              loop
+              playsInline
+              onTimeUpdate={() => setCurrentTime(videoRef.current?.currentTime || 0)}
+              onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)}
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
+              className="w-full h-full object-contain cursor-pointer"
+            />
+            {/* Simple controls overlay */}
+            <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover/video:opacity-100 transition-opacity">
+              <div className="flex items-center gap-2">
+                <button onClick={() => isPlaying ? videoRef.current.pause() : videoRef.current.play()} className="text-white">
+                  {isPlaying ? <IoPause size={14} /> : <IoPlay size={14} />}
+                </button>
+                <div className="flex-grow h-1 bg-white/20 rounded-full overflow-hidden">
+                  <div className="h-full bg-orange-500" style={{ width: `${(currentTime/duration)*100}%` }} />
+                </div>
               </div>
             </div>
-          ) : data.errorMsg ? (
-            <div className="text-red-400 text-xs font-medium p-3 bg-red-500/10 rounded-xl border border-red-500/20 m-3 w-full">
-              {data.errorMsg || "Generation failed"}
-            </div>
-          ) : currentOutput && !data.isLoading ? (
-            <div className="w-full h-full relative group/audio flex flex-col items-center justify-center">
-              <AudioPlayer 
-                src={currentOutput} 
-                nodeId={id}
-              />
-              {currentOutputList.length > 1 && (
-                <div className="flex items-center gap-2 mt-4 bg-white/5 border border-white/10 rounded-full px-2 py-1">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCurrentAudioIndex((prev) => (prev > 0 ? prev - 1 : currentOutputList.length - 1));
-                    }}
-                    className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/10 text-white/70 hover:text-white transition-colors"
-                  >
-                    <FaAngleLeft size={12} />
-                  </button>
-                  <span className="text-[10px] font-medium text-white/90 tabular-nums">
-                    {currentAudioIndex + 1}/{currentOutputList.length}
-                  </span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCurrentAudioIndex((prev) => (prev < currentOutputList.length - 1 ? prev + 1 : 0));
-                    }}
-                    className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/10 text-white/70 hover:text-white transition-colors"
-                  >
-                    <FaAngleRight size={12} />
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center text-zinc-400 gap-2">
-              <AiOutlineAudio size={32} />
-              <span className="text-[10px] italic">Result appeared here...</span>
-            </div>
-          )}
-        </div>
-      )}
-      <Handle  
-        type="target" 
-        position={Position.Left} 
-        id="audioInput" 
-        style={{ 
-          top: 70,
-          opacity: hasAudioUrl ? 1 : 0,
-          pointerEvents: hasAudioUrl ? 'auto' : 'none',
-          width: 12,
-          height: 12,
-          transition: 'all 0.2s ease-in-out',
-        }}  
-        className={`!rounded-full !border-[3px] !left-[-8px] transition-all
-          ${connectedInputs.audioInput 
-            ? '!bg-yellow-500 !border-zinc-900 shadow-[0_0_15px_rgba(234,179,8,0.8)]' 
-            : '!bg-zinc-900 !border-yellow-500/50 hover:!border-yellow-500 shadow-sm'
-          }
-        `}
-        data-type="yellow"
-      />
-      {hasAudioUrl && (
-        <p 
-          className={`absolute -left-7 top-[70px] text-xs text-yellow-500 transition-opacity duration-200 ${
-            data.activeHandleColor === "yellow" 
-              ? "opacity-100" 
-              : "opacity-0 group-hover:opacity-100"
-          }`}
-        > 
-          Audio 
-        </p>
-      )}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center text-zinc-400 gap-2">
+            <IoVideocamOutline size={32} />
+            <span className="text-[10px] italic">Result appeared here...</span>
+          </div>
+        )}
+      </div>
+      {/* Handles */}
       <Handle 
         type="target" 
         position={Position.Left} 
-        id="audioInput2" 
+        id="videoInput7"
         style={{ 
           top: 100,
-          opacity: hasPrompt ? 1 : 0,
-          pointerEvents: hasPrompt ? 'auto' : 'none',
+          opacity: hasVideosList ? 1 : 0,
+          pointerEvents: hasVideosList ? 'auto' : 'none',
           width: 12,
           height: 12,
           transition: 'all 0.2s ease-in-out',
         }} 
         className={`!rounded-full !border-[3px] !left-[-8px] transition-all
-          ${connectedInputs.audioInput2 
-            ? '!bg-blue-600 !border-zinc-900 shadow-[0_0_15px_rgba(37,99,235,0.8)]' 
-            : '!bg-zinc-900 !border-blue-600/50 hover:!border-blue-600 shadow-sm'
-          }
-        `}
-        data-type="blue"
-      />
-      {hasPrompt && (
-        <p 
-          className={`absolute -left-8 top-[100px] text-xs text-blue-500 transition-opacity duration-200 ${
-            data.activeHandleColor === "blue"
-              ? "opacity-100" 
-              : "opacity-0 group-hover:opacity-100"
-          }`}
-        > 
-          Text 
-        </p>
-      )}
-      <Handle 
-        type="target" 
-        position={Position.Left} 
-        id="audioInput3" 
-        style={{ 
-          top: 130,
-          opacity: hasImageUrl ? 1 : 0,
-          pointerEvents: hasImageUrl ? 'auto' : 'none',
-          width: 12,
-          height: 12,
-          transition: 'all 0.2s ease-in-out',
-        }} 
-        className={`!rounded-full !border-[3px] !left-[-8px] transition-all
-          ${connectedInputs.audioInput3 
-            ? '!bg-emerald-600 !border-zinc-900 shadow-[0_0_15px_rgba(16,185,129,0.8)]' 
-            : '!bg-zinc-900 !border-emerald-600/50 hover:!border-emerald-600 shadow-sm'
-          }
-        `}
-        data-type="green" 
-      />
-      {hasImageUrl && (
-        <p 
-          className={`absolute -left-10 top-[130px] text-xs text-green-500 transition-opacity duration-200 ${
-            data.activeHandleColor === "green"
-              ? "opacity-100" 
-              : "opacity-0 group-hover:opacity-100"
-          }`}
-        > 
-          Image 
-        </p>
-      )}
-      <Handle 
-        type="target" 
-        position={Position.Left} 
-        id="audioInput4"
-        style={{ 
-          top: 160,
-          opacity: hasVideoUrl ? 1 : 0,
-          pointerEvents: hasVideoUrl ? 'auto' : 'none',
-          width: 12,
-          height: 12,
-          transition: 'all 0.2s ease-in-out',
-        }} 
-        className={`!rounded-full !border-[3px] !left-[-8px] transition-all
-          ${connectedInputs.audioInput4 
+          ${connectedInputs.videoInput7 
             ? '!bg-orange-600 !border-zinc-900 shadow-[0_0_15px_rgba(249,115,22,0.8)]' 
             : '!bg-zinc-900 !border-orange-600/50 hover:!border-orange-600 shadow-sm'
           }
         `}
         data-type="orange"
       />
-      {hasVideoUrl && (
-        <p 
-          className={`absolute -left-10 top-[160px] text-xs text-orange-500 transition-opacity duration-200 ${
-            data.activeHandleColor === "orange"
-              ? "opacity-100" 
-              : "opacity-0 group-hover:opacity-100"
-          }`}
-        > 
-          Video
+      {hasVideosList && (
+        <p className={`absolute -left-10 top-[100px] text-xs text-orange-500 transition-opacity duration-200 ${data.activeHandleColor === "orange" ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
+          Videos
         </p>
       )}
+
       <Handle 
         type="source" 
         position={Position.Right} 
-        id="audioOutput" 
+        id="videoOutput" 
         style={{ 
           top: 100,
           width: 12,
@@ -672,24 +545,18 @@ const AudioGeneration = ({ id, data, selected }) => {
           transition: 'all 0.2s ease-in-out',
         }} 
         className={`!rounded-full !border-[3px] !right-[-8px] transition-all
-          ${connectedOutputs.audioOutput 
-            ? '!bg-yellow-500 !border-zinc-900 shadow-[0_0_15px_rgba(234,179,8,0.8)]' 
-            : '!bg-zinc-900 !border-yellow-500/50 hover:!border-yellow-500 shadow-sm'
+          ${connectedOutputs.videoOutput 
+            ? '!bg-orange-600 !border-zinc-900 shadow-[0_0_15px_rgba(249,115,22,0.8)]' 
+            : '!bg-zinc-900 !border-orange-600/50 hover:!border-orange-600 shadow-sm'
           }
         `}
-        data-type="yellow"
+        data-type="orange"
       />
-      <p 
-        className={`absolute -right-10 top-[100px] text-xs text-yellow-500 transition-opacity duration-200 ${
-          data.activeHandleColor === "yellow" 
-            ? "opacity-100" 
-            : "opacity-0 group-hover:opacity-100"
-        }`}
-      > 
-        Audio 
+      <p className={`absolute -right-10 top-[100px] text-xs text-orange-500 transition-opacity duration-200 ${data.activeHandleColor === "orange" ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
+        Video 
       </p>
     </div>
   );
 };
 
-export default AudioGeneration;
+export default VideoCombiner;

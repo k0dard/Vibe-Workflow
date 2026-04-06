@@ -20,6 +20,7 @@ const inputHandles = [
   "videoInput4",  // video_url
   "videoInput5",  // audio_url
   "videoInput6",  // images_list
+  "videoInput7",  // videos_list
 ];
 
 const outputHandles = [
@@ -124,6 +125,13 @@ const VideoGeneration = ({ id, data, selected }) => {
       },
       {}
     );
+
+    // Preserve UI-only flags that are not part of the model schema
+    const UI_KEYS = ["make_output", "make_input"];
+    UI_KEYS.forEach((k) => {
+      if (data.formValues?.[k] !== undefined) merged[k] = data.formValues[k];
+    });
+
     setFormValues(merged);
   };
 
@@ -300,6 +308,7 @@ const VideoGeneration = ({ id, data, selected }) => {
 
   const hasPrompt = properties && "prompt" in properties && !data.selectedModel?.id.includes("passthrough");
   const hasImagesList = properties && "images_list" in properties && !data.selectedModel?.id.includes("passthrough");
+  const hasVideosList = properties && "videos_list" in properties && !data.selectedModel?.id.includes("passthrough");
   const hasLastImage = properties && "last_image" in properties && !data.selectedModel?.id.includes("passthrough");
   const hasImageUrl = properties && "image_url" in properties && !data.selectedModel?.id.includes("passthrough");
   const hasVideoUrl = properties && "video_url" in properties && !data.selectedModel?.id.includes("passthrough");
@@ -314,6 +323,7 @@ const VideoGeneration = ({ id, data, selected }) => {
         hasVideoUrl && "videoInput4",
         hasAudioUrl && "videoInput5",
         hasImagesList && "videoInput6",
+        hasVideosList && "videoInput7",
       ].filter(Boolean);
 
       setEdges((prevEdges) =>
@@ -648,7 +658,10 @@ const VideoGeneration = ({ id, data, selected }) => {
               )}
             </div>
           ) : (
-            <p className="text-gray-400 text-sm italic">Generation results appeared here...</p>
+            <div className="flex flex-col items-center justify-center text-zinc-400 gap-2">
+              <IoVideocamOutline size={32} />
+              <span className="text-[10px] italic">Result appeared here...</span>
+            </div>
           )}
         </div>
       )}
@@ -744,7 +757,7 @@ const VideoGeneration = ({ id, data, selected }) => {
               : "opacity-0 group-hover:opacity-100"
           }`}
         > 
-          Image 
+          Images
         </p>
       )}
       
@@ -808,6 +821,38 @@ const VideoGeneration = ({ id, data, selected }) => {
           }`}
         > 
           Video
+        </p>
+      )}
+
+      <Handle 
+        type="target" 
+        position={Position.Left} 
+        id="videoInput7"
+        style={{ 
+          top: 160,
+          opacity: hasVideosList ? 1 : 0,
+          pointerEvents: hasVideosList ? 'auto' : 'none',
+          width: 12,
+          height: 12,
+          transition: 'all 0.2s ease-in-out',
+        }} 
+        className={`!rounded-full !border-[3px] !left-[-8px] transition-all
+          ${connectedInputs.videoInput7 
+            ? '!bg-orange-600 !border-zinc-900 shadow-[0_0_15px_rgba(249,115,22,0.8)]' 
+            : '!bg-zinc-900 !border-orange-600/50 hover:!border-orange-600 shadow-sm'
+          }
+        `}
+        data-type="orange"
+      />
+      {hasVideosList && (
+        <p 
+          className={`absolute -left-10 top-[160px] text-xs text-orange-500 transition-opacity duration-200 ${
+            data.activeHandleColor === "orange"
+              ? "opacity-100" 
+              : "opacity-0 group-hover:opacity-100"
+          }`}
+        > 
+          Videos
         </p>
       )}
       <Handle 

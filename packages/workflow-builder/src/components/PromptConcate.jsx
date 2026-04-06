@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Handle, Position, useReactFlow, useStore, useUpdateNodeInternals } from "reactflow";
 import { getRunId, getWorkflowId } from "./WorkflowStore";
 import { toast } from "react-hot-toast";
@@ -24,6 +24,7 @@ const PromptConcate = ({ id, data, selected }) => {
   const workflowId = getWorkflowId();
   const runId = data.runId ?? getRunId();
   const nodeSchemas = data.nodeSchemas || {};
+  const textareaRef = useRef(null);
   const { setNodes, setEdges } = useReactFlow();
   const updateNodeInternals = useUpdateNodeInternals();
   const edges = useStore((state) => state.edges);
@@ -95,6 +96,13 @@ const PromptConcate = ({ id, data, selected }) => {
       },
       {}
     );
+
+    // Preserve UI-only flags that are not part of the model schema
+    const UI_KEYS = ["make_output", "make_input"];
+    UI_KEYS.forEach((k) => {
+      if (data.formValues?.[k] !== undefined) merged[k] = data.formValues[k];
+    });
+
     setFormValues(merged);
   }, [selectedModel]);
 
@@ -177,24 +185,40 @@ const PromptConcate = ({ id, data, selected }) => {
     setConnectedOutputs(connectedOutputs);
   }, [edges, id]);
 
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = "0px";
+      const scrollHeight = textarea.scrollHeight;
+      textarea.style.height = `${Math.max(scrollHeight, 210)}px`;
+    }
+  }, [formValues, selectedModel.name]);
+
   return (
-    <div className={`nowheel group flex flex-col h-96 w-80 bg-[#0c0d0f] rounded-2xl border-2 relative transition-all duration-500 ease-in-out ${selected ? "border-white": "border-gray-500"}`}>
-      <h3 className="absolute -top-5 left-0 text-gray-300 text-xs">Prompt Concatenator {id.replace(/^\D+/g, "")}</h3>
-      <div className="flex items-center justify-between bg-[#151618] rounded-t-2xl border-b border-gray-800 p-2">
-        <div className="flex items-center gap-3 w-full">
-          <button
-            type="button"
-            className={`p-1 rounded cursor-pointer rotate-90 text-white bg-[#494c52]`}
-          >
-            <TbArrowMerge size={18} />
-          </button>
-          <button
-            type="button"
-            onClick={() => setDropDown(prev => prev === 1 ? 0: 1)}
-            className="flex items-center gap-1 text-xs text-center cursor-pointer truncate text-white"
-          >
-            {selectedModel.name}
-          </button>
+    <div 
+      style={{ minHeight: 280, '--loader-color': '#2563eb' }} 
+      className={`
+        nowheel group flex flex-col flex-1 w-80 
+        rounded-2xl border-2 relative transition-all duration-300 ease-in-out 
+        ${selected 
+          ? "border-blue-600 shadow-[0_0_25px_rgba(37,99,235,0.3)] scale-[1.02] ring-1 ring-blue-500/20" 
+          : "border-zinc-800 hover:border-zinc-700 shadow-lg"} 
+        bg-[#0c0d0f]/95 backdrop-blur-sm
+      `}
+    >
+      <h3 className="absolute -top-5 left-0 text-zinc-400 text-[10px] font-medium tracking-wider uppercase">
+        Prompt Concatenator {id.replace(/^\D+/g, "")}
+      </h3>
+      <div className="flex flex-col">
+        <div className="flex items-center justify-between bg-gradient-to-r from-[#151618] to-[#1c1e21] rounded-t-2xl border-b border-zinc-800 p-3">
+          <div className="flex items-center gap-2.5">
+            <div className={`p-1.5 rounded-lg ${selected ? "bg-blue-600 text-white" : "bg-zinc-800 text-zinc-400"} transition-colors`}>
+              <TbArrowMerge size={14} className="rotate-90" />
+            </div>
+            <h3 className="text-xs font-bold text-zinc-100">
+              {selectedModel.name}
+            </h3>
+          </div>
           <NodeOptionsMenu 
             nodeId={id}
             onDuplicate={data.duplicateNode}
@@ -202,12 +226,13 @@ const PromptConcate = ({ id, data, selected }) => {
           />
         </div>
       </div>
-      <div className="flex flex-col w-full h-full">
+      <div className="relative flex flex-col gap-2 bg-zinc-900/30 rounded-xl border border-zinc-800/50 w-full h-full p-2">
         <textarea
           type="text"
+          ref={textareaRef}
           readOnly
           value={formValues?.prompt || ""}
-          className="bg-transparent border border-gray-700 w-full !h-full p-2 text-xs text-white resize-none"
+          className="w-full h-full max-h-96 text-xs leading-relaxed outline-none bg-transparent resize-none text-zinc-100 font-medium placeholder:italic placeholder:opacity-50"
         />
       </div>
       {hasPrompt && (

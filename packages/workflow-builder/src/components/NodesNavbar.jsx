@@ -10,7 +10,8 @@ import {
   videoModels,
   textModels,
   audioModels,
-  concatModels
+  concatModels,
+  videoCombinerModels
 } from "./utility";
 import { TbArrowMerge } from "react-icons/tb";
 import { RiInputMethodLine } from "react-icons/ri";
@@ -32,7 +33,7 @@ const NodesNavbar = ({ addNode, apiNodeModels, filterNodeTypes = null, nodeSchem
   const getNodeTypeFromSubmenuId = (id) => {
     if (id === 'inputs') return ['textNode', 'imageNode', 'videoNode', 'audioNode'];
     if (id.includes('text-llms') || id === 'text-llms') return 'textNode';
-    if (id.includes('concat') || id === 'text-utils') return 'concatNode';
+    if (id === 'concat' || id === 'text-utils' || id === 'utilities') return ['concatNode', 'vidConcatNode'];
     if (id.includes('image')) return 'imageNode';
     if (id.includes('video')) return 'videoNode';
     if (id.includes('audio')) return 'audioNode';
@@ -70,7 +71,15 @@ const NodesNavbar = ({ addNode, apiNodeModels, filterNodeTypes = null, nodeSchem
     const textModels = mapModels(categories.text?.models);
     const audioModels = mapModels(categories.audio?.models);
     const apiModels = mapModels(categories.api?.models);
-    const utilityModels = mapModels(categories.utility?.models);
+    const rawUtilityModels = mapModels(categories.utility?.models);
+    const utilityModels = [...rawUtilityModels];
+
+    // Add local models if they are not in the backend response
+    [...concatModels, ...videoCombinerModels].forEach(m => {
+      if (!utilityModels.find(um => um.id === m.id)) {
+        utilityModels.push(m);
+      }
+    });
 
     const isPassthrough = (m) => m?.id && m.id.includes("passthrough");
 
@@ -123,7 +132,7 @@ const NodesNavbar = ({ addNode, apiNodeModels, filterNodeTypes = null, nodeSchem
       label: "Text",
       items: [
         { label: "Text (LLMs)", icon: <TfiText />, hasSubmenu: true, id: "text-llms" },
-        { label: "Text Utilities", icon: <TfiText />, hasSubmenu: true, id: "text-utils" },
+        { label: "Utilities", icon: <TbArrowMerge className="rotate-90" />, hasSubmenu: true, id: "utilities" },
       ]
     },
     {
@@ -159,7 +168,13 @@ const NodesNavbar = ({ addNode, apiNodeModels, filterNodeTypes = null, nodeSchem
   const getSubmenuItems = (id) => {
     switch (id) {
       case "inputs": return categorizedModels.inputs.map(m => ({ label: m.name, model: m, type: m.type }));
-      case "text-utils": return categorizedModels.textUtils.map(m => ({ label: m.name, model: m, type: "concatNode" }));
+      case "text-utils": 
+      case "utilities": 
+        return categorizedModels.utilities.map(m => ({ 
+          label: m.name, 
+          model: m, 
+          type: m.id === "video-combiner" ? "vidConcatNode" : "concatNode" 
+        }));
       case "generate-image": return categorizedModels.generateImage.map(m => ({ label: m.name, model: m, type: "imageNode" }));
       case "edit-image": return categorizedModels.editImage.map(m => ({ label: m.name, model: m, type: "imageNode" }));
       case "upscale-image": return categorizedModels.upscaleImage.map(m => ({ label: m.name, model: m, type: "imageNode" })); // May be empty
@@ -189,7 +204,7 @@ const NodesNavbar = ({ addNode, apiNodeModels, filterNodeTypes = null, nodeSchem
       ...editVideo.map(m => ({ ...m, type: "videoNode" })),
       ...text.map(m => ({ ...m, type: "textNode" })),
       ...audio.map(m => ({ ...m, type: "audioNode" })),
-      ...textUtils.map(m => ({ ...m, type: "concatNode" })),
+      ...textUtils.map(m => ({ ...m, type: m.id === "video-combiner" ? "vidConcatNode" : "concatNode" })),
       ...apiNodeModels.map(m => ({ ...m, type: "apiNode" })),
     ];
 
@@ -399,6 +414,7 @@ const Submenu = ({ activeSubMenu, menuStructure, getSubmenuItems, handleAddNode,
       case "Text (LLMs)":
         return <TfiText />;
       case "Text Utilities":
+      case "Utilities":
         return <TbArrowMerge className="rotate-90" />;
       case "Generate Image":
         return <IoImageOutline />;

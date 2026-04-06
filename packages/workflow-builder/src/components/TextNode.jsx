@@ -114,6 +114,13 @@ const TextGeneration = ({ id, data, selected }) => {
       },
       {}
     );
+
+    // Preserve UI-only flags that are not part of the model schema
+    const UI_KEYS = ["make_output", "make_input"];
+    UI_KEYS.forEach((k) => {
+      if (data.formValues?.[k] !== undefined) merged[k] = data.formValues[k];
+    });
+
     setFormValues(merged);
   }
   useEffect(() => {
@@ -536,7 +543,10 @@ const TextGeneration = ({ id, data, selected }) => {
               )}
             </div>
           ) : (
-            <p className="text-gray-400 text-sm italic">Generation results appeared here...</p>
+            <div className="flex flex-col items-center justify-center text-zinc-400 gap-2">
+              <TfiText size={32} />
+              <span className="text-[10px] italic">Result appeared here...</span>
+            </div>
           )}
         </div>
       )}
