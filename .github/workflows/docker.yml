@@ -97,23 +97,3 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-  cleanup-untagged:
-    runs-on: ubuntu-latest
-    needs: [build-server, build-client]
-    permissions:
-      packages: write
-    steps:
-      - name: Delete untagged images
-        run: |
-          for pkg in "server" "client"; do
-            # List all versions
-            versions=$(gh api /users/${{ github.repository_owner }}/packages/container/Vibe-Workflow%2F${pkg}/versions --jq '.[] | select(.metadata.container.tags | length == 0) | .id')
-            # Delete untagged ones
-            for id in $versions; do
-              echo "Deleting untagged version $id for $pkg"
-              gh api --method DELETE /users/${{ github.repository_owner }}/packages/container/Vibe-Workflow%2F${pkg}/versions/$id
-            done
-          done
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
