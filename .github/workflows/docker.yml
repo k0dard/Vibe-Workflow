@@ -105,8 +105,15 @@ jobs:
       packages: write
     steps:
       - name: Delete untagged images
-        uses: dataaxiom/ghcr-cleanup-action@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          delete-untagged: true
-          dry-run: false
+        run: |
+          for pkg in "server" "client"; do
+            # List all versions
+            versions=$(gh api /users/${{ github.repository_owner }}/packages/container/Vibe-Workflow%2F${pkg}/versions --jq '.[] | select(.metadata.container.tags | length == 0) | .id')
+            # Delete untagged ones
+            for id in $versions; do
+              echo "Deleting untagged version $id for $pkg"
+              gh api --method DELETE /users/${{ github.repository_owner }}/packages/container/Vibe-Workflow%2F${pkg}/versions/$id
+            done
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
